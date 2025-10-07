@@ -7,7 +7,8 @@
     "typescipt": "^1.0.0"
   },
   "scripts": {
-    "start": "ts-node src/server.ts",
+    "prod": "npx dotenvx run --env-file=.env.production -- ts-node src/server.ts",
+    "dev": "npx dotenvx run --env-file=.env.local -- ts-node src/server.ts",
     "build": "tsc"
   },
   "dependencies": {
