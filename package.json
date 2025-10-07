@@ -1,0 +1,17 @@
+{
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.7.0",
+    "express": "^5.1.0",
+    "ts-node": "^10.9.2",
+    "typescipt": "^1.0.0"
+  },
+  "scripts": {
+    "start": "ts-node src/server.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.0",
+    "dotenv": "^17.2.3"
+  }
+}
