@@ -18,7 +18,7 @@ func main() {
 		log.Println("Info! Succesfully load .env file")
 	}
 
-	addr := os.Getenv("SERVER_ADDR")
+	addr := os.Getenv("SERVER_ADDRESS")
 
 	handler := handler.New()
 	router := router.New(handler)

@@ -7,7 +7,6 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/otie173/skyland-auth/api/dto"
 )
@@ -54,10 +53,19 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("New register request: %v\n", request)
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{},
+	secret := []byte(os.Getenv("JWT_SECRET"))
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"iss": 1,
+			"sub": request.Username,
+		},
 	)
+	s, err := token.SignedString(secret)
+	if err != nil {
+		log.Printf("Error! Cant sign string: %v\n", err)
+		return
+	}
+	log.Println(s)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
