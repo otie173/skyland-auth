@@ -19,7 +19,7 @@ func New(handler *handler.Handler) *Router {
 
 func (r *Router) SetupRoutes() {
 	r.Route("/api/v1/auth/", func(auth chi.Router) {
-		auth.Post("/signup", r.handler.SignupHandler)
-		auth.Post("/signin", r.handler.SigninHandler)
+		auth.Post("/register", r.handler.RegisterHandler)
+		auth.Post("/login", r.handler.LoginHandler)
 	})
 }
