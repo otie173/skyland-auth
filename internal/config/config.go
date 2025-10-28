@@ -14,6 +14,7 @@ type Config struct {
 	DBName     string `env:"DB_NAME" envDefault:"mydb"`
 	RedisHost  string `env:"REDIS_HOST" envDefault:"localhost"`
 	RedisPort  string `env:"REDIS_PORT" envDefault:"6379"`
+	JWTSecret  string `env:"JWT_SECRET" envDefault:"secret"`
 }
 
 func Load() (*Config, error) {
