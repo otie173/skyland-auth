@@ -3,46 +3,51 @@ package handler
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/bytedance/sonic"
 	"github.com/go-playground/validator/v10"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/otie173/skyland-auth/api/dto"
+	"github.com/otie173/skyland-auth/internal/domain/services"
 )
 
 type Handler struct {
-	validator *validator.Validate
+	validator   *validator.Validate
+	authService *services.AuthService
 }
 
-func New() *Handler {
+func New(authService *services.AuthService) *Handler {
 	return &Handler{
-		validator: validator.New(validator.WithRequiredStructEnabled()),
+		validator:   validator.New(validator.WithRequiredStructEnabled()),
+		authService: authService,
 	}
+}
+
+func (h *Handler) decodeRequest(r *http.Request, target interface{}) error {
+	defer r.Body.Close()
+	return sonic.ConfigDefault.NewDecoder(r.Body).Decode(target)
+}
+
+func (h *Handler) sendJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if err := sonic.ConfigDefault.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error marshaling response: %v", err)
+	}
+}
+
+func (h *Handler) sendError(w http.ResponseWriter, status int, message string) {
+	h.sendJSON(w, status, dto.ErrorResponse{
+		Error:   true,
+		Message: message,
+	})
 }
 
 func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	var request dto.RegisterRequest
-	var response dto.RegisterResponse
 
-	decoder := sonic.ConfigDefault.NewDecoder(r.Body)
-	defer r.Body.Close()
-
-	if err := decoder.Decode(&request); err != nil {
-		response = dto.RegisterResponse{
-			Error:   true,
-			Message: "Failed to read request body",
-		}
-
-		output, err := sonic.Marshal(response)
-		if err != nil {
-			log.Printf("Error! Cant marshal register response: %v\n", err)
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(output)
-
+	if err := h.decodeRequest(r, &request); err != nil {
+		h.sendError(w, http.StatusBadRequest, "Failed to read request body")
 		return
 	}
 
@@ -53,36 +58,17 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("New register request: %v\n", request)
 
-	secret := []byte(os.Getenv("JWT_SECRET"))
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"iss": 1,
-			"sub": request.Username,
-		},
-	)
-	s, err := token.SignedString(secret)
-	if err != nil {
-		log.Printf("Error! Cant sign string: %v\n", err)
+	if err := h.authService.Register(request.Username, request.Email, request.Password); err != nil {
+		h.sendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	log.Println(s)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	response = dto.RegisterResponse{
+	response := dto.RegisterResponse{
 		Error:   false,
-		Message: "User is successfully created",
+		Message: "User successfully created",
 	}
 
-	output, err := sonic.Marshal(response)
-	if err != nil {
-		log.Printf("Error! Cant marshal regsiter response: %v\n", err)
-	}
-
-	if _, err := w.Write(output); err != nil {
-		log.Printf("Error! Cant write register response: %v\n", err)
-	}
-
+	h.sendJSON(w, http.StatusCreated, response)
 }
 
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {

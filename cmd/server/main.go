@@ -7,6 +7,7 @@ import (
 	"github.com/otie173/skyland-auth/api/handler"
 	"github.com/otie173/skyland-auth/api/router"
 	"github.com/otie173/skyland-auth/internal/config"
+	"github.com/otie173/skyland-auth/internal/domain/services"
 	"github.com/otie173/skyland-auth/internal/infrastructure/postgresql"
 	"github.com/otie173/skyland-auth/internal/infrastructure/redis"
 	"github.com/otie173/skyland-auth/internal/pkg/server"
@@ -19,16 +20,18 @@ func main() {
 	}
 	log.Println(cfg)
 
-	database, err := postgresql.NewConnection(cfg)
+	db, err := postgresql.NewConnection(cfg)
 	if err != nil {
 		log.Fatalf("Error! Problems with connecting to database: %v\n", err)
 	}
-	log.Println(database)
+	userRepo := postgresql.NewUserRepository(db)
 
 	cache := redis.NewClient(cfg)
-	log.Println(cache)
+	tokenRepo := redis.NewTokenRepository(cache)
 
-	handler := handler.New()
+	authService := services.NewAuthService(userRepo, tokenRepo)
+
+	handler := handler.New(authService)
 	router := router.New(handler)
 
 	router.Use(middleware.Logger)
